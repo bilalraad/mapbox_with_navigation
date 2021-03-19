@@ -1,15 +1,18 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:mapbox_api/mapbox_api.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
-import 'package:polyline/polyline.dart';
-import 'package:location/location.dart';
+import 'package:mapbox_with_navigation/model/location_details.dart';
+import 'package:mapbox_with_navigation/widgets/path_widget.dart';
 
-enum SelectLocationType {
+import 'package:mapbox_with_navigation/utils/navigate_to_user_location.dart';
+import 'package:mapbox_with_navigation/utils/request_path.dart';
+import 'package:mapbox_with_navigation/widgets/pin_details.dart';
+
+enum MapState {
   None,
-  FromLoc,
-  ToLoc,
+  Pinlocation,
+  ShowingPath,
 }
 
 List<LatLng> markers = [
@@ -20,28 +23,8 @@ List<LatLng> markers = [
 
 const String ACCESS_TOKEN =
     "pk.eyJ1IjoiYmlsYWxyYWQiLCJhIjoiY2ttYXp4MnhhMXg0NjJvbnhscm9qNHVyZSJ9.az1fKlaW3hGzqEPoU-76nA";
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  Location location = Location();
-
-  bool _serviceEnabled;
-  PermissionStatus _permissionGranted;
-
-  _serviceEnabled = await location.serviceEnabled();
-  if (!_serviceEnabled) {
-    _serviceEnabled = await location.requestService();
-    if (!_serviceEnabled) {
-      return;
-    }
-  }
-
-  _permissionGranted = await location.hasPermission();
-  if (_permissionGranted == PermissionStatus.denied) {
-    _permissionGranted = await location.requestPermission();
-    if (_permissionGranted != PermissionStatus.granted) {
-      return;
-    }
-  }
+void main() {
+  // WidgetsFlutterBinding.ensureInitialized();
 
   runApp(MyApp());
 }
@@ -73,72 +56,69 @@ class FullMapState extends State<FullMap> {
   Line pathLine;
   Circle firstPoint;
   Circle secondPoint;
-  SelectLocationType selectLocationType = SelectLocationType.None;
+  MapState mapState = MapState.None;
   LatLng userLocation;
   bool loading = false;
-  Symbol tempMarker;
+  Symbol selectedMarker;
+
   Future<void> _onMapCreated(MapboxMapController controller) async {
     mapController = controller;
-    Location location = Location();
-    final _locationData = await location.getLocation();
-    userLocation = LatLng(_locationData.latitude, _locationData.longitude);
-    await mapController.addCircle(CircleOptions(geometry: userLocation));
-    await mapController.addSymbol(SymbolOptions(
-        geometry: userLocation, textField: 'you', textOffset: Offset(0, 1)));
-
-    await mapController.animateCamera(CameraUpdate.newLatLng(userLocation));
-    mapController.animateCamera(CameraUpdate.zoomTo(15));
+    userLocation = await navigateToUserLocation(controller);
 
     for (LatLng i in markers) {
-      await mapController.addSymbol(SymbolOptions(
+      await mapController.addSymbol(
+        SymbolOptions(
           geometry: i,
           iconImage: 'assets/icons/location_pin.png',
           iconSize: 0.5,
-          textOffset: Offset(0, 2)));
+          textOffset: Offset(0, 1),
+        ),
+      );
     }
-
-    mapController.onSymbolTapped.add((argument) async {
-      if (tempMarker != null) {
-        clearAll();
+    mapController.onSymbolTapped.add((marker) async {
+      if (marker.options.geometry != userLocation) {
+        if (selectedMarker != null) {
+          clearAll();
+        }
+        toLoc = marker.options.geometry;
+        selectedMarker = marker;
+        mapController.updateSymbol(
+          marker,
+          SymbolOptions(iconImage: 'assets/icons/location_pin_red.png'),
+        );
+        setState(() {
+          mapState = MapState.Pinlocation;
+        });
       }
-      toLoc = argument.options.geometry;
-      tempMarker = argument;
-      mapController.updateSymbol(argument,
-          SymbolOptions(iconImage: 'assets/icons/location_pin_red.png'));
-      setState(() {});
     });
   }
 
   void _onMapLongClick(Point<double> point, LatLng coordinates) async {
-    if (selectLocationType != SelectLocationType.None) {
-      final point = await mapController.addCircle(
-        CircleOptions(
-            circleColor: "#5196F5", geometry: coordinates, draggable: true),
+    if (mapState == MapState.None) {
+      selectedMarker = await mapController.addSymbol(
+        SymbolOptions(
+          geometry: coordinates,
+          iconImage: 'assets/icons/location_pin.png',
+          iconSize: 0.5,
+          draggable: true,
+        ),
       );
-
-      if (selectLocationType == SelectLocationType.FromLoc) {
-        fromLoc = coordinates;
-        firstPoint = point;
-      } else {
-        toLoc = coordinates;
-        secondPoint = point;
-      }
-      setState(() {
-        selectLocationType = SelectLocationType.None;
-      });
+      toLoc = coordinates;
     }
+    setState(() {
+      mapState = MapState.Pinlocation;
+    });
   }
 
   void clearAll() {
     mapController.clearLines();
-    if (firstPoint != null) mapController.removeCircle(firstPoint);
-    if (secondPoint != null) mapController.removeCircle(secondPoint);
-    if (tempMarker != null)
-      mapController.updateSymbol(tempMarker,
+    if (firstPoint != null) mapController.removeSymbol(selectedMarker);
+    if (selectedMarker != null)
+      mapController.updateSymbol(selectedMarker,
           SymbolOptions(iconImage: 'assets/icons/location_pin.png'));
     setState(() {
       pathLine = null;
-      tempMarker = null;
+      selectedMarker = null;
       firstPoint = null;
       secondPoint = null;
       toLoc = null;
@@ -151,6 +131,20 @@ class FullMapState extends State<FullMap> {
     return Scaffold(
         appBar: AppBar(
           title: Text('Map'),
+          leading: mapState != MapState.None
+              ? TextButton(
+                  child: Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                  ),
+                  onPressed: () {
+                    clearAll();
+                    setState(() {
+                      mapState = MapState.None;
+                    });
+                  },
+                )
+              : null,
         ),
         body: Stack(
           children: [
@@ -158,240 +152,55 @@ class FullMapState extends State<FullMap> {
               accessToken: ACCESS_TOKEN,
               onMapCreated: _onMapCreated,
               onMapLongClick: _onMapLongClick,
+              onMapClick: (point, coordinates) {
+                if (mapState != MapState.ShowingPath) {
+                  setState(() {
+                    mapState = MapState.None;
+                  });
+                  clearAll();
+                }
+              },
               zoomGesturesEnabled: true,
               initialCameraPosition: const CameraPosition(
-                  target: LatLng(33.2232, 43.6793), zoom: 10),
-              onStyleLoadedCallback: onStyleLoadedCallback,
+                  target: LatLng(33.3152, 44.3661), zoom: 10),
             ),
-            Container(
-              color: Colors.white,
-              padding: EdgeInsets.all(10),
-              height: MediaQuery.of(context).size.height * 0.15,
-              width: double.infinity,
-              child: selectLocationType == SelectLocationType.None
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            ElevatedButton(
-                                onPressed: fromLoc != null || loading == true
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          selectLocationType =
-                                              SelectLocationType.FromLoc;
-                                        });
-                                      },
-                                child: Text('Select starting point')),
-                            Spacer(),
-                            ElevatedButton(
-                                onPressed: toLoc != null || loading == true
-                                    ? null
-                                    : () async {
-                                        setState(() {
-                                          selectLocationType =
-                                              SelectLocationType.ToLoc;
-                                        });
-                                      },
-                                child: Text('Select destination')),
-                          ],
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            ElevatedButton(
-                                onPressed: fromLoc == null || toLoc == null
-                                    ? null
-                                    : () async {
-                                        setState(() {
-                                          loading = true;
-                                        });
-                                        if (fromLoc != null && toLoc != null) {
-                                          final path =
-                                              await _requestpathfromMapBox(
-                                                  fromLoc, toLoc);
-
-                                          if (path.length > 0) {
-                                            pathLine =
-                                                await mapController.addLine(
-                                              LineOptions(
-                                                geometry: path,
-                                                lineColor: "#8196F5",
-                                                lineWidth: 3.0,
-                                                lineOpacity: 1,
-                                                draggable: false,
-                                              ),
-                                            );
-                                          }
-                                          setState(() {
-                                            loading = false;
-                                          });
-                                        }
-                                      },
-                                child: Text('show path')),
-                            ElevatedButton(
-                                onPressed: clearAll, child: Text('Clear All')),
-                          ],
-                        ),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            'Long press to select the location',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    selectLocationType =
-                                        SelectLocationType.None;
-                                  });
-                                },
-                                child: Text('Cancle')),
-                            if (selectLocationType ==
-                                    SelectLocationType.FromLoc &&
-                                userLocation != null)
-                              ElevatedButton(
-                                  onPressed: () async {
-                                    firstPoint = await mapController.addCircle(
-                                      CircleOptions(
-                                        circleColor: "#5196F5",
-                                        geometry: userLocation,
-                                      ),
-                                    );
-                                    setState(() {
-                                      selectLocationType =
-                                          SelectLocationType.None;
-                                      fromLoc = userLocation;
-                                    });
-                                  },
-                                  child: Text('Select My location')),
-                          ],
-                        ),
-                      ],
-                    ),
-            ),
-            if (toLoc != null)
+            if (mapState == MapState.ShowingPath)
+              PathWidget(
+                userLocation: LocationDetails(
+                    coordinates: userLocation, name: 'your locaion'),
+                destLocation: LocationDetails(
+                    coordinates: selectedMarker.options.geometry,
+                    name: 'random location'),
+              ),
+            if (mapState == MapState.Pinlocation)
               Positioned(
-                bottom: 0,
-                child: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: 100,
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      ElevatedButton.icon(
-                          icon: Icon(Icons.directions),
-                          onPressed: () async {
-                            firstPoint = await mapController.addCircle(
-                              CircleOptions(
-                                circleColor: "#5196F5",
-                                geometry: userLocation,
-                              ),
-                            );
-                            setState(() {
-                              fromLoc = userLocation;
-                            });
-
-                            final path =
-                                await _requestpathfromMapBox(fromLoc, toLoc);
-
-                            if (path.length > 0) {
-                              pathLine = await mapController.addLine(
-                                LineOptions(
-                                  geometry: path,
-                                  lineColor: "#8196F5",
-                                  lineWidth: 3.0,
-                                  lineOpacity: 1,
-                                  draggable: false,
-                                ),
-                              );
-                            }
-                          },
-                          label: Text('Directions to the marker')),
-                      ElevatedButton(
-                          onPressed: clearAll, child: Text('Cancel')),
-                      if (loading == true)
-                        Positioned(
-                          bottom: 10,
-                          right: 10,
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              )
+                  bottom: 0,
+                  child: PinDetails(
+                    mapController: mapController,
+                    pinlocation: selectedMarker.options.geometry,
+                    showPath: showPath,
+                  ))
           ],
         ));
   }
 
-  void onStyleLoadedCallback() {}
-}
+  Future<void> showPath() async {
+    final path = await requestpathfromMapBox(
+        from: userLocation, to: selectedMarker.options.geometry);
 
-Future<List<LatLng>> _requestpathfromMapBox(LatLng from, LatLng to) async {
-  MapboxApi mapbox = MapboxApi(accessToken: ACCESS_TOKEN);
-
-  DirectionsApiResponse response = await mapbox.directions.request(
-    profile: NavigationProfile.DRIVING_TRAFFIC,
-    overview: NavigationOverview.FULL,
-    geometries: NavigationGeometries.POLYLINE6,
-    steps: true,
-    coordinates: <List<double>>[
-      <double>[
-        from.latitude,
-        from.longitude,
-      ],
-      <double>[
-        to.latitude,
-        to.longitude,
-      ],
-    ],
-  );
-  if (response.error != null) {
-    if (response.error is NavigationNoRouteError) {
-      // handle NoRoute response
-    } else if (response.error is NavigationNoSegmentError) {
-      // handle NoSegment response
-    }
-    return null;
-  }
-  if (response.routes.isNotEmpty) {
-    // Here we use Polyline to decode coordinates
-    // with polylin ealgorithm
-    //
-    // see: https://developers.google.com/maps/documentation/utilities/polylinealgorithm
-    final route = response.routes[0];
-    final polyline = Polyline.Decode(
-      encodedString: route.geometry as String,
-      precision: 6,
-    );
-    final coordinates = polyline.decodedCoords;
-    // this path will contains points
-    // from Mapbox Direction API
-    final path = <LatLng>[];
-    for (var i = 0; i < coordinates.length; i++) {
-      path.add(
-        LatLng(
-          coordinates[i][0],
-          coordinates[i][1],
+    if (path.length > 0) {
+      await mapController.addLine(
+        LineOptions(
+          geometry: path,
+          lineColor: "#8196F5",
+          lineWidth: 3.0,
+          lineOpacity: 1,
+          draggable: false,
         ),
       );
+      setState(() {
+        mapState = MapState.ShowingPath;
+      });
     }
-    return path;
   }
-  return null;
 }
