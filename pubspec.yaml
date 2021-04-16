@@ -24,10 +24,12 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.2
-  location: ^3.2.4
-  mapbox_api: ^0.2.3
+  location: ^4.1.1
+  mapbox_api: ^0.3.0
   mapbox_gl: ^0.10.0
   polyline: ^1.0.2
+  flutter_dotenv: ^3.1.0
+  provider: ^5.0.0
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +47,7 @@ flutter:
   assets:
     - assets/icons/location_pin.png
     - assets/icons/location_pin_red.png
+    - .env
     # - images/a_dot_ham.jpeg
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.

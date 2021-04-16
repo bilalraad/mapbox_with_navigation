@@ -1,10 +1,10 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart' as DotEnv;
 import 'package:mapbox_api/mapbox_api.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
-import 'package:mapbox_with_navigation/main.dart';
 import 'package:polyline/polyline.dart';
 
 Future<List<LatLng>> requestpathfromMapBox({LatLng from, LatLng to}) async {
-  MapboxApi mapbox = MapboxApi(accessToken: ACCESS_TOKEN);
+  MapboxApi mapbox = MapboxApi(accessToken: DotEnv.env['MAPBOX_ACCESS_TOKEN']);
 
   DirectionsApiResponse response = await mapbox.directions.request(
     profile: NavigationProfile.DRIVING_TRAFFIC,

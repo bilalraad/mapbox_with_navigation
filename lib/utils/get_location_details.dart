@@ -1,9 +1,10 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart' as DotEnv;
 import 'package:mapbox_api/mapbox_api.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
-import 'package:mapbox_with_navigation/main.dart';
+import 'package:mapbox_with_navigation/model/location_details.dart';
 
-Future<String> requestlocationDetailsMapBox(LatLng loc) async {
-  MapboxApi mapbox = MapboxApi(accessToken: ACCESS_TOKEN);
+Future<LocationDetails> requestlocationDetailsMapBox(LatLng loc) async {
+  MapboxApi mapbox = MapboxApi(accessToken: DotEnv.env['MAPBOX_ACCESS_TOKEN']);
 
   final response = await mapbox.reverseGeocoding.request(
     coordinate: <double>[
@@ -24,7 +25,10 @@ Future<String> requestlocationDetailsMapBox(LatLng loc) async {
   }
 
   if (response.features != null && response.features.isNotEmpty) {
-    return response.features[0].placeName;
+    return LocationDetails(
+      name: response.features[0].placeName,
+      coordinates: loc,
+    );
   }
   return null;
 }

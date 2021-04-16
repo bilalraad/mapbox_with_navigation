@@ -6,7 +6,7 @@ Future<LatLng> navigateToUserLocation(MapboxMapController mapController) async {
   final userLocation = await requestLicationPermissionandUserLoc();
   final _defaultLocation = LatLng(33.3152, 44.3661);
   if (userLocation != null) {
-    // await mapController.addCircle(CircleOptions(geometry: userLocation));
+    mapController.requestMyLocationLatLng();
     await mapController.addSymbol(
       SymbolOptions(
         geometry: userLocation,
