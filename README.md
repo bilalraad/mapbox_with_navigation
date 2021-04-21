@@ -4,12 +4,7 @@ The purpose of this project was to test the [mapbox_gl](https://pub.dev/packages
 
 P.S: Mapbox will give you a 25,000 free monthly active users and only 100,000 free requests for Directions API and same amount for Temporary Geocoding API (A search query).
 
-![homescreen.jpg](./images/1.jpg)
-![PinDetailsWidget.jpg](./images/2.jpg)
-![pathWidget.jpg](./images/3.jpg)
-![ChangeLocationWidget.jpg](./images/4.jpg)
-
-####And my conclusion was:
+### And my conclusion was:
 
 1. Both packages hold a lot of potential if the developers behind it keep supporting it.
 
@@ -19,13 +14,20 @@ P.S: Mapbox will give you a 25,000 free monthly active users and only 100,000 fr
 
 4. They implement the same concepts as _Google Maps_ and can be used for learning and maybe doing some cool map-related stuff for free.
 
-#####What I used/implemented in this project:
+### What I used/implemented in this project:
 
 1. Reverse geocoding api from mapbox_api package (To get location's name).
 2. Directions api from mapbox_api package.
 3. Device location & Location tracking from Location package.
 4. Polyline package to decode the coordinates coming from Directions api.
 5. MapboxMapController from mapbox_gl package to create/update symbols (Markers) on the map and to get coordinates.
+
+## Screenshots
+
+![homescreen.jpg](./images/1.jpg)
+![PinDetailsWidget.jpg](./images/2.jpg)
+![pathWidget.jpg](./images/3.jpg)
+![ChangeLocationWidget.jpg](./images/4.jpg)
 
 ## Getting Started
 
