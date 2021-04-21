@@ -24,10 +24,12 @@ P.S: Mapbox will give you a 25,000 free monthly active users and only 100,000 fr
 
 ## Screenshots
 
-![homescreen.jpg](./images/1.jpg)
-![PinDetailsWidget.jpg](./images/2.jpg)
-![pathWidget.jpg](./images/3.jpg)
-![ChangeLocationWidget.jpg](./images/4.jpg)
+<p float="left">
+  <img src="./images/1.jpg" width="200" />
+  <img src="./images/2.jpg" width="200" /> 
+  <img src="./images/3.jpg" width="200" />
+  <img src="./images/4.jpg" width="200" />
+</p>
 
 ## Getting Started
 
