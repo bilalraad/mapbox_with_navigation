@@ -1,9 +1,13 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart' as DotEnv;
 import 'package:mapbox_api/mapbox_api.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
 import 'package:polyline/polyline.dart';
 
-Future<List<LatLng>> requestpathfromMapBox({LatLng from, LatLng to}) async {
+///Retrieve directions between waypoints. Peth requests must specify
+///two waypoints as starting and ending points.
+Future<List<LatLng>> requestpathfromMapBox(
+    {@required LatLng from, @required LatLng to}) async {
   MapboxApi mapbox = MapboxApi(accessToken: DotEnv.env['MAPBOX_ACCESS_TOKEN']);
 
   DirectionsApiResponse response = await mapbox.directions.request(
@@ -26,8 +30,10 @@ Future<List<LatLng>> requestpathfromMapBox({LatLng from, LatLng to}) async {
   if (response.error != null) {
     if (response.error is NavigationNoRouteError) {
       // handle NoRoute response
+      print(response.error);
     } else if (response.error is NavigationNoSegmentError) {
       // handle NoSegment response
+      print(response.error);
     }
     return null;
   }

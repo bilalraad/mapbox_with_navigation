@@ -3,9 +3,13 @@ import 'package:mapbox_api/mapbox_api.dart';
 import 'package:mapbox_gl/mapbox_gl.dart';
 import 'package:mapbox_with_navigation/model/location_details.dart';
 
+///This fuction will return [LocationDetails] instance that has
+///the name of the location you provided
 Future<LocationDetails> requestlocationDetailsMapBox(LatLng loc) async {
   MapboxApi mapbox = MapboxApi(accessToken: DotEnv.env['MAPBOX_ACCESS_TOKEN']);
 
+//[reverseGeocoding] means that you provide location and you get it's name
+//[forwardGeocoding] is the opposite
   final response = await mapbox.reverseGeocoding.request(
     coordinate: <double>[
       loc.latitude,

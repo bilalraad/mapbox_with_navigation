@@ -7,6 +7,8 @@ enum MapState {
   ShowingPath,
   ChangingLocation,
 }
+
+///This will help to identify whitch location the user is currently changing
 enum ChangingLocationState { StartingLoc, EndingLoc }
 
 class MapProvider extends ChangeNotifier {
@@ -18,6 +20,8 @@ class MapProvider extends ChangeNotifier {
   MapboxMapController get mapController => _mapController;
   ChangingLocationState get changLocState => _changingLocState;
 
+  ///we you change the mapstate to MapState.ChangingLocation you should provide
+  ///[ChangingLocationState] other that that just leave it
   void changeMapstate(MapState newState, {ChangingLocationState chnglocState}) {
     _mapState = newState;
     if (_mapState == MapState.ChangingLocation) {
@@ -26,6 +30,8 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  ///this function should be used only one time
+  ///taht is when [_onMapCreated] is called
   MapboxMapController setController(MapboxMapController controller) {
     _mapController = controller;
     notifyListeners();

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:mapbox_with_navigation/providers/mapProvider.dart';
+import '../providers/mapProvider.dart';
 
+//This widget should appear only when the mapState = MapState.ChangingLocation
 class ChangingLocation extends StatelessWidget {
   final Function setNewLoc;
 
-  const ChangingLocation({Key key, this.setNewLoc}) : super(key: key);
+  const ChangingLocation({@required this.setNewLoc});
 
   @override
   Widget build(BuildContext context) {
@@ -13,26 +14,41 @@ class ChangingLocation extends StatelessWidget {
 
     bool isStarting = context.read<MapProvider>().changLocState ==
         ChangingLocationState.StartingLoc;
-    return AnimatedOpacity(
+    return Positioned(
+      bottom: 0,
+      child: AnimatedOpacity(
         opacity: mapState == MapState.ChangingLocation ? 1.0 : 0.0,
         duration: Duration(milliseconds: 600),
         child: mapState == MapState.ChangingLocation
             ? Container(
-                width: double.infinity,
+                width: MediaQuery.of(context).size.width,
                 height: 100,
-                color: Colors.pink,
+                color: Theme.of(context).primaryColor,
                 padding: EdgeInsets.all(20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      isStarting
-                          ? 'select Starting location \nLong press to select the Location'
-                          : 'select Ending location \nLong press to select the Location',
-                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    Column(
+                      children: [
+                        Text(
+                          isStarting
+                              ? 'Select Starting location'
+                              : 'Select Ending location ',
+                          style: TextStyle(color: Colors.white, fontSize: 20),
+                        ),
+                        Text(
+                          'Long press to select the Location',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                        )
+                      ],
                     ),
                     OutlinedButton(
                       onPressed: setNewLoc,
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Theme.of(context).accentColor,
+                      ),
                       child: Text(
                         'Ok',
                         style: TextStyle(color: Colors.white),
@@ -41,6 +57,8 @@ class ChangingLocation extends StatelessWidget {
                   ],
                 ),
               )
-            : Container());
+            : Container(),
+      ),
+    );
   }
 }
